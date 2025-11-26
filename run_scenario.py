@@ -4,9 +4,17 @@ Useful for debugging and interactive testing.
 """
 import asyncio
 import os
+import sys
+import warnings
+from contextlib import redirect_stderr
+from io import StringIO
 from dotenv import load_dotenv
 import scenario
 from agents.recipe_agent import create_openai_agent, create_custom_gateway_agent
+
+# Suppress LangWatch warnings and errors
+os.environ.setdefault("LANGWATCH_DISABLE_EVENTS", "true")
+warnings.filterwarnings("ignore", category=UserWarning)
 
 # Load environment variables
 load_dotenv()
@@ -22,80 +30,118 @@ USER_SIMULATOR_MODEL = os.getenv("USER_SIMULATOR_MODEL", "gpt-4o-mini")  # User 
 JUDGE_MODEL = os.getenv("JUDGE_MODEL", "gpt-4o")  # Judge agent (better reasoning)
 
 
+def print_header(title: str):
+    """Print a formatted header."""
+    print("\n" + "═" * 70)
+    print(f"  {title}")
+    print("═" * 70)
+
+
+def print_section(title: str):
+    """Print a formatted section."""
+    print(f"\n{'─' * 70}")
+    print(f"  {title}")
+    print("─" * 70)
+
+
+def print_info(label: str, value: str):
+    """Print formatted info line."""
+    print(f"  {label:.<30} {value}")
+
+
 async def main():
     """Run a single scenario interactively."""
-    print("=" * 60)
-    print("Recipe Agent Scenario Test")
-    print("=" * 60)
+    # Clear screen and print header
+    print("\033[2J\033[H", end="")  # Clear screen
+    print_header("🍳 Recipe Agent Scenario Test")
+    
+    # Configuration display
+    print_section("Configuration")
+    if USE_CUSTOM_GATEWAY:
+        print_info("Agent Model", f"{AGENT_MODEL} (Gateway)")
+    else:
+        print_info("Agent Model", f"{AGENT_MODEL} (OpenAI)")
+    print_info("User Simulator Model", USER_SIMULATOR_MODEL)
+    print_info("Judge Model", JUDGE_MODEL)
     
     # Create agent based on configuration
     if USE_CUSTOM_GATEWAY:
-        print(f"Using custom gateway with model: {AGENT_MODEL}")
         agent = create_custom_gateway_agent(model=AGENT_MODEL)
     else:
-        print(f"Using OpenAI with model: {AGENT_MODEL}")
         agent = create_openai_agent(model=AGENT_MODEL)
     
-    print(f"User Simulator Model: {USER_SIMULATOR_MODEL}")
-    print(f"Judge Model: {JUDGE_MODEL}")
-    print("\nRunning scenario...")
-    print("-" * 60)
+    print_section("Running Scenario")
+    print("  Starting conversation simulation...\n")
+    
+    # Suppress LangWatch API errors by redirecting stderr temporarily
+    stderr_capture = StringIO()
     
     # Run the scenario
     # NOTE: Each agent can use a DIFFERENT model - this is recommended!
     # - RecipeAgent: Uses Llama-3.3-70B-Instruct (gateway) for quality responses
     # - UserSimulatorAgent: Uses gpt-4o-mini (fast, cost-effective)
     # - JudgeAgent: Uses gpt-4o (better reasoning for evaluation)
-    result = await scenario.run(
-        name="vegetarian recipe request",
-        description="""
-            It's Saturday evening, the user is very hungry and tired,
-            but has no money to order out, so they are looking for a recipe.
-            The user wants something quick and easy to make.
-        """,
-        agents=[
-            agent,  # Agent under test (Llama-3.3-70B-Instruct)
-            scenario.UserSimulatorAgent(
-                model=USER_SIMULATOR_MODEL,  # User simulator (gpt-4o-mini)
-            ),
-            scenario.JudgeAgent(
-                model=JUDGE_MODEL,  # Judge agent (gpt-4o for better reasoning)
-                criteria=[
-                    "Agent asks at most one follow-up question (a single simple question, not multiple options)",
-                    "Agent provides a vegetarian recipe",
-                    "Recipe includes a list of ingredients",
-                    "Recipe includes step-by-step cooking instructions",
-                    "Recipe does not include any meat, fish, dairy (cheese, milk, butter), eggs, honey, or any animal products",
-                ],
-            ),
-        ],
-        max_turns=5,  # Limit conversation length
-    )
+    with redirect_stderr(stderr_capture):
+        result = await scenario.run(
+            name="vegetarian recipe request",
+            description="""
+                It's Saturday evening, the user is very hungry and tired,
+                but has no money to order out, so they are looking for a recipe.
+                The user wants something quick and easy to make.
+            """,
+            agents=[
+                agent,  # Agent under test (Llama-3.3-70B-Instruct)
+                scenario.UserSimulatorAgent(
+                    model=USER_SIMULATOR_MODEL,  # User simulator (gpt-4o-mini)
+                ),
+                scenario.JudgeAgent(
+                    model=JUDGE_MODEL,  # Judge agent (gpt-4o for better reasoning)
+                    criteria=[
+                        "Agent asks at most one follow-up question (a single simple question, not multiple options)",
+                        "Agent provides a vegetarian recipe",
+                        "Recipe includes a list of ingredients",
+                        "Recipe includes step-by-step cooking instructions",
+                        "Recipe does not include any meat, fish, dairy (cheese, milk, butter), eggs, honey, or any animal products",
+                    ],
+                ),
+            ],
+            max_turns=5,  # Limit conversation length
+        )
     
     # Print results
-    print("-" * 60)
-    print(f"\nScenario Result: {'✅ SUCCESS' if result.success else '❌ FAILED'}")
+    print_section("Results")
     
-    if not result.success:
+    if result.success:
+        print("\n  ✅ SUCCESS - All criteria met!")
+    else:
+        print("\n  ❌ FAILED - Some criteria not met")
+        
         # Try to get detailed failure information
         if hasattr(result, 'failure_reason') and result.failure_reason:
-            print(f"\nFailure reason: {result.failure_reason}")
+            print(f"\n  Failure Reason: {result.failure_reason}")
         elif hasattr(result, 'results') and result.results:
             results = result.results
-            if hasattr(results, 'unmet_criteria') and results.unmet_criteria:
-                print(f"\nUnmet criteria:")
-                for criterion in results.unmet_criteria:
-                    print(f"  ❌ {criterion}")
+            
             if hasattr(results, 'met_criteria') and results.met_criteria:
-                print(f"\nMet criteria:")
+                print("\n  ✅ Met Criteria:")
                 for criterion in results.met_criteria:
-                    print(f"  ✅ {criterion}")
+                    print(f"     • {criterion}")
+            
+            if hasattr(results, 'unmet_criteria') and results.unmet_criteria:
+                print("\n  ❌ Unmet Criteria:")
+                for criterion in results.unmet_criteria:
+                    print(f"     • {criterion}")
+            
             if hasattr(results, 'reasoning') and results.reasoning:
-                print(f"\nJudge reasoning: {results.reasoning}")
+                print(f"\n  📝 Judge Reasoning:")
+                reasoning_lines = results.reasoning.split('. ')
+                for line in reasoning_lines:
+                    if line.strip():
+                        print(f"     {line.strip()}")
         else:
-            print("\nFailure reason: Unknown (check logs above)")
+            print("\n  ⚠️  Failure reason: Unknown")
     
-    print("=" * 60)
+    print("\n" + "═" * 70 + "\n")
     
     return result.success
 
