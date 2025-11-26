@@ -12,12 +12,27 @@ from dotenv import load_dotenv
 import scenario
 from agents.recipe_agent import create_openai_agent, create_custom_gateway_agent
 
-# Suppress LangWatch warnings and errors
-os.environ.setdefault("LANGWATCH_DISABLE_EVENTS", "true")
-warnings.filterwarnings("ignore", category=UserWarning)
-
-# Load environment variables
+# Load environment variables first
 load_dotenv()
+
+# LangWatch configuration
+LANGWATCH_API_KEY = os.getenv("LANGWATCH_API_KEY")
+LANGWATCH_ENABLED = bool(LANGWATCH_API_KEY)
+
+# Only suppress LangWatch if API key is not provided
+if not LANGWATCH_ENABLED:
+    os.environ.setdefault("LANGWATCH_DISABLE_EVENTS", "true")
+    warnings.filterwarnings("ignore", category=UserWarning)
+else:
+    # Configure LangWatch when API key is available
+    try:
+        scenario.configure(
+            langwatch_api_key=LANGWATCH_API_KEY,
+            langwatch_endpoint=os.getenv("LANGWATCH_ENDPOINT", "https://app.langwatch.ai"),
+        )
+    except Exception:
+        # If configuration fails, fall back to disabled mode
+        os.environ.setdefault("LANGWATCH_DISABLE_EVENTS", "true")
 
 # Configuration
 USE_CUSTOM_GATEWAY = os.getenv("USE_CUSTOM_GATEWAY", "false").lower() == "true"
@@ -63,6 +78,10 @@ async def main():
         print_info("Agent Model", f"{AGENT_MODEL} (OpenAI)")
     print_info("User Simulator Model", USER_SIMULATOR_MODEL)
     print_info("Judge Model", JUDGE_MODEL)
+    if LANGWATCH_ENABLED:
+        print_info("LangWatch", "✅ Enabled (visualization available)")
+    else:
+        print_info("LangWatch", "⚠️  Disabled (set LANGWATCH_API_KEY to enable)")
     
     # Create agent based on configuration
     if USE_CUSTOM_GATEWAY:
@@ -73,15 +92,43 @@ async def main():
     print_section("Running Scenario")
     print("  Starting conversation simulation...\n")
     
-    # Suppress LangWatch API errors by redirecting stderr temporarily
-    stderr_capture = StringIO()
-    
     # Run the scenario
     # NOTE: Each agent can use a DIFFERENT model - this is recommended!
     # - RecipeAgent: Uses Llama-3.3-70B-Instruct (gateway) for quality responses
     # - UserSimulatorAgent: Uses gpt-4o-mini (fast, cost-effective)
     # - JudgeAgent: Uses gpt-4o (better reasoning for evaluation)
-    with redirect_stderr(stderr_capture):
+    
+    # Only suppress stderr if LangWatch is disabled
+    if not LANGWATCH_ENABLED:
+        stderr_capture = StringIO()
+        with redirect_stderr(stderr_capture):
+            result = await scenario.run(
+                name="vegetarian recipe request",
+                description="""
+                    It's Saturday evening, the user is very hungry and tired,
+                    but has no money to order out, so they are looking for a recipe.
+                    The user wants something quick and easy to make.
+                """,
+                agents=[
+                    agent,  # Agent under test (Llama-3.3-70B-Instruct)
+                    scenario.UserSimulatorAgent(
+                        model=USER_SIMULATOR_MODEL,  # User simulator (gpt-4o-mini)
+                    ),
+                    scenario.JudgeAgent(
+                        model=JUDGE_MODEL,  # Judge agent (gpt-4o for better reasoning)
+                        criteria=[
+                            "Agent asks at most one follow-up question (a single simple question, not multiple options)",
+                            "Agent provides a vegetarian recipe",
+                            "Recipe includes a list of ingredients",
+                            "Recipe includes step-by-step cooking instructions",
+                            "Recipe does not include any meat, fish, dairy (cheese, milk, butter), eggs, honey, or any animal products",
+                        ],
+                    ),
+                ],
+                max_turns=5,  # Limit conversation length
+            )
+    else:
+        # LangWatch enabled - let it handle events normally
         result = await scenario.run(
             name="vegetarian recipe request",
             description="""

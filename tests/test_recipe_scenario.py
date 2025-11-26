@@ -2,12 +2,32 @@
 Test the recipe agent using Scenario framework.
 """
 import os
+import warnings
 import pytest
 import scenario
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+# LangWatch configuration
+LANGWATCH_API_KEY = os.getenv("LANGWATCH_API_KEY")
+LANGWATCH_ENABLED = bool(LANGWATCH_API_KEY)
+
+# Only suppress LangWatch if API key is not provided
+if not LANGWATCH_ENABLED:
+    os.environ.setdefault("LANGWATCH_DISABLE_EVENTS", "true")
+    warnings.filterwarnings("ignore", category=UserWarning)
+else:
+    # Configure LangWatch when API key is available
+    try:
+        scenario.configure(
+            langwatch_api_key=LANGWATCH_API_KEY,
+            langwatch_endpoint=os.getenv("LANGWATCH_ENDPOINT", "https://app.langwatch.ai"),
+        )
+    except Exception:
+        # If configuration fails, fall back to disabled mode
+        os.environ.setdefault("LANGWATCH_DISABLE_EVENTS", "true")
 
 # Import agent factory
 from agents.recipe_agent import create_openai_agent, create_custom_gateway_agent
