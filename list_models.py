@@ -1,5 +1,5 @@
 """
-Script to list available models from OpenAI or custom gateway.
+Script to list available models from custom gateway.
 Shows both chat/completion models and embedding models.
 """
 import asyncio
@@ -11,35 +11,28 @@ from base64 import b64encode
 # Load environment variables
 load_dotenv()
 
-# Configuration
-USE_CUSTOM_GATEWAY = os.getenv("USE_CUSTOM_GATEWAY", "false").lower() == "true"
+# Gateway Configuration
 GATEWAY_BASE_URL = os.getenv("CUSTOM_GATEWAY_BASE_URL", "https://genai.iais.fraunhofer.de/api/v2")
-GATEWAY_API_KEY = os.getenv("CUSTOM_GATEWAY_API_KEY", "xxxx")
+GATEWAY_API_KEY = os.getenv("CUSTOM_GATEWAY_API_KEY", "xxxx")  # Hardcoded placeholder
 GENAI_USERNAME = os.getenv("GENAI_USERNAME")
 GENAI_PASSWORD = os.getenv("GENAI_PASSWORD")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 
 async def create_client():
-    """Create OpenAI client for either OpenAI or custom gateway."""
-    if USE_CUSTOM_GATEWAY:
-        # Build Basic Auth header
-        if GENAI_USERNAME and GENAI_PASSWORD:
-            token_string = f"{GENAI_USERNAME}:{GENAI_PASSWORD}"
-            token_bytes = b64encode(token_string.encode())
-            auth_header = f"Basic {token_bytes.decode()}"
-        else:
-            auth_header = None
-        
-        return AsyncOpenAI(
-            api_key=GATEWAY_API_KEY,
-            base_url=GATEWAY_BASE_URL,
-            default_headers={"Authorization": auth_header} if auth_header else None,
-        )
+    """Create OpenAI client for custom gateway with Basic Auth."""
+    # Build Basic Auth header
+    if GENAI_USERNAME and GENAI_PASSWORD:
+        token_string = f"{GENAI_USERNAME}:{GENAI_PASSWORD}"
+        token_bytes = b64encode(token_string.encode())
+        auth_header = f"Basic {token_bytes.decode()}"
     else:
-        if not OPENAI_API_KEY:
-            raise ValueError("OPENAI_API_KEY not found in environment")
-        return AsyncOpenAI(api_key=OPENAI_API_KEY)
+        auth_header = None
+    
+    return AsyncOpenAI(
+        api_key=GATEWAY_API_KEY,
+        base_url=GATEWAY_BASE_URL,
+        default_headers={"Authorization": auth_header} if auth_header else None,
+    )
 
 
 async def list_chat_models(client):
@@ -191,17 +184,15 @@ async def main():
     print("MODEL LISTING TOOL")
     print("=" * 60)
     
-    if USE_CUSTOM_GATEWAY:
-        print(f"\n🔧 Using Custom Gateway")
-        print(f"   Base URL: {GATEWAY_BASE_URL}")
-        if GENAI_USERNAME:
-            print(f"   Username: {GENAI_USERNAME}")
-        else:
-            print(f"   ⚠️  GENAI_USERNAME not set")
+    print(f"\n🔧 Using Custom Gateway")
+    print(f"   Base URL: {GATEWAY_BASE_URL}")
+    print(f"   API Key: {GATEWAY_API_KEY}")
+    if GENAI_USERNAME:
+        print(f"   Username: {GENAI_USERNAME}")
     else:
-        print(f"\n🔧 Using OpenAI")
-        if not OPENAI_API_KEY:
-            print("   ⚠️  OPENAI_API_KEY not set")
+        print(f"   ⚠️  GENAI_USERNAME not set")
+    if not GENAI_PASSWORD:
+        print(f"   ⚠️  GENAI_PASSWORD not set")
     
     try:
         client = await create_client()
@@ -228,12 +219,10 @@ async def main():
     except Exception as e:
         print(f"\n❌ Error: {e}")
         print("\nMake sure your environment variables are set correctly:")
-        if USE_CUSTOM_GATEWAY:
-            print("  - CUSTOM_GATEWAY_BASE_URL")
-            print("  - GENAI_USERNAME")
-            print("  - GENAI_PASSWORD")
-        else:
-            print("  - OPENAI_API_KEY")
+        print("  - CUSTOM_GATEWAY_BASE_URL")
+        print("  - GENAI_USERNAME")
+        print("  - GENAI_PASSWORD")
+        print("  - CUSTOM_GATEWAY_API_KEY (optional, defaults to 'xxxx')")
 
 
 if __name__ == "__main__":
