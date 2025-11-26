@@ -61,7 +61,6 @@ cp .env.example .env
 # Edit .env and add your API keys
 ```
 
-For detailed platform-specific instructions, see [INSTALL.md](INSTALL.md).
 
 ## Usage
 
@@ -100,9 +99,7 @@ test_agent/
 ├── pyproject.toml          # uv project config
 ├── .env.example            # Environment template
 ├── README.md               # This file
-├── INSTALL.md              # Detailed installation guide
 ├── setup.sh                # Automated setup script
-├── Makefile                # Convenient make commands
 ├── run_scenario.py         # Standalone script to run scenarios
 ├── list_models.py          # Script to list available models
 ├── agents/
@@ -162,20 +159,6 @@ uv run python run_scenario.py
 uv run python list_models.py
 ```
 
-## Using Make Commands
-
-For convenience, you can use make commands:
-
-```bash
-make setup        # Run automated setup
-make install      # Install/update dependencies
-make test         # Run tests
-make test-verbose # Run tests with verbose output
-make list-models  # List available models
-make run-scenario # Run scenario standalone
-make clean        # Clean temporary files
-make help         # Show all available commands
-```
 
 ## Portability
 
@@ -192,4 +175,3 @@ The setup script (`setup.sh`) automatically detects your OS and installs depende
 
 - [Scenario Documentation](https://scenario.langwatch.ai/basics/concepts)
 - [uv Documentation](https://github.com/astral-sh/uv)
-- [Installation Guide](INSTALL.md) - Detailed platform-specific instructions
