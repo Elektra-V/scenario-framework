@@ -12,6 +12,7 @@ load_dotenv()
 
 # LangWatch configuration
 LANGWATCH_API_KEY = os.getenv("LANGWATCH_API_KEY")
+LANGWATCH_ENDPOINT = os.getenv("LANGWATCH_ENDPOINT", "https://app.langwatch.ai")
 LANGWATCH_ENABLED = bool(LANGWATCH_API_KEY)
 
 # Only suppress LangWatch if API key is not provided
@@ -23,7 +24,7 @@ else:
     try:
         scenario.configure(
             langwatch_api_key=LANGWATCH_API_KEY,
-            langwatch_endpoint=os.getenv("LANGWATCH_ENDPOINT", "https://app.langwatch.ai"),
+            langwatch_endpoint=LANGWATCH_ENDPOINT,
         )
     except Exception:
         # If configuration fails, fall back to disabled mode

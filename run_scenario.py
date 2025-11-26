@@ -17,6 +17,7 @@ load_dotenv()
 
 # LangWatch configuration
 LANGWATCH_API_KEY = os.getenv("LANGWATCH_API_KEY")
+LANGWATCH_ENDPOINT = os.getenv("LANGWATCH_ENDPOINT", "https://app.langwatch.ai")
 LANGWATCH_ENABLED = bool(LANGWATCH_API_KEY)
 
 # Only suppress LangWatch if API key is not provided
@@ -28,7 +29,7 @@ else:
     try:
         scenario.configure(
             langwatch_api_key=LANGWATCH_API_KEY,
-            langwatch_endpoint=os.getenv("LANGWATCH_ENDPOINT", "https://app.langwatch.ai"),
+            langwatch_endpoint=LANGWATCH_ENDPOINT,
         )
     except Exception:
         # If configuration fails, fall back to disabled mode
@@ -79,7 +80,8 @@ async def main():
     print_info("User Simulator Model", USER_SIMULATOR_MODEL)
     print_info("Judge Model", JUDGE_MODEL)
     if LANGWATCH_ENABLED:
-        print_info("LangWatch", "✅ Enabled (visualization available)")
+        print_info("LangWatch", f"✅ Enabled")
+        print_info("LangWatch Endpoint", LANGWATCH_ENDPOINT)
     else:
         print_info("LangWatch", "⚠️  Disabled (set LANGWATCH_API_KEY to enable)")
     
