@@ -61,11 +61,11 @@ async def main():
             scenario.JudgeAgent(
                 model=JUDGE_MODEL,  # Judge agent (gpt-4o for better reasoning)
                 criteria=[
-                    "Agent asks at most one follow-up question",
+                    "Agent asks at most one follow-up question (a single simple question, not multiple options)",
                     "Agent provides a vegetarian recipe",
                     "Recipe includes a list of ingredients",
                     "Recipe includes step-by-step cooking instructions",
-                    "Recipe does not include any meat or animal products",
+                    "Recipe does not include any meat, fish, dairy (cheese, milk, butter), eggs, honey, or any animal products",
                 ],
             ),
         ],
@@ -77,8 +77,23 @@ async def main():
     print(f"\nScenario Result: {'✅ SUCCESS' if result.success else '❌ FAILED'}")
     
     if not result.success:
-        failure_reason = getattr(result, 'failure_reason', 'Unknown reason')
-        print(f"Failure reason: {failure_reason}")
+        # Try to get detailed failure information
+        if hasattr(result, 'failure_reason') and result.failure_reason:
+            print(f"\nFailure reason: {result.failure_reason}")
+        elif hasattr(result, 'results') and result.results:
+            results = result.results
+            if hasattr(results, 'unmet_criteria') and results.unmet_criteria:
+                print(f"\nUnmet criteria:")
+                for criterion in results.unmet_criteria:
+                    print(f"  ❌ {criterion}")
+            if hasattr(results, 'met_criteria') and results.met_criteria:
+                print(f"\nMet criteria:")
+                for criterion in results.met_criteria:
+                    print(f"  ✅ {criterion}")
+            if hasattr(results, 'reasoning') and results.reasoning:
+                print(f"\nJudge reasoning: {results.reasoning}")
+        else:
+            print("\nFailure reason: Unknown (check logs above)")
     
     print("=" * 60)
     
