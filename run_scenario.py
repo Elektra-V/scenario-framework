@@ -98,62 +98,41 @@ async def main():
     # - UserSimulatorAgent: Uses gpt-4o-mini (fast, cost-effective)
     # - JudgeAgent: Uses gpt-4o (better reasoning for evaluation)
     
+    # Scenario configuration
+    scenario_config = {
+        "name": "vegetarian recipe request",
+        "description": """
+            It's Saturday evening, the user is very hungry and tired,
+            but has no money to order out, so they are looking for a recipe.
+            The user wants something quick and easy to make.
+        """,
+        "agents": [
+            agent,  # Agent under test (Llama-3.3-70B-Instruct)
+            scenario.UserSimulatorAgent(
+                model=USER_SIMULATOR_MODEL,  # User simulator (gpt-4o-mini)
+            ),
+            scenario.JudgeAgent(
+                model=JUDGE_MODEL,  # Judge agent (gpt-4o for better reasoning)
+                criteria=[
+                    "Agent asks at most one follow-up question (a single simple question, not multiple options)",
+                    "Agent provides a vegetarian recipe",
+                    "Recipe includes a list of ingredients",
+                    "Recipe includes step-by-step cooking instructions",
+                    "Recipe does not include any meat, fish, dairy (cheese, milk, butter), eggs, honey, or any animal products",
+                ],
+            ),
+        ],
+        "max_turns": 5,  # Limit conversation length
+    }
+    
     # Only suppress stderr if LangWatch is disabled
     if not LANGWATCH_ENABLED:
         stderr_capture = StringIO()
         with redirect_stderr(stderr_capture):
-            result = await scenario.run(
-                name="vegetarian recipe request",
-                description="""
-                    It's Saturday evening, the user is very hungry and tired,
-                    but has no money to order out, so they are looking for a recipe.
-                    The user wants something quick and easy to make.
-                """,
-                agents=[
-                    agent,  # Agent under test (Llama-3.3-70B-Instruct)
-                    scenario.UserSimulatorAgent(
-                        model=USER_SIMULATOR_MODEL,  # User simulator (gpt-4o-mini)
-                    ),
-                    scenario.JudgeAgent(
-                        model=JUDGE_MODEL,  # Judge agent (gpt-4o for better reasoning)
-                        criteria=[
-                            "Agent asks at most one follow-up question (a single simple question, not multiple options)",
-                            "Agent provides a vegetarian recipe",
-                            "Recipe includes a list of ingredients",
-                            "Recipe includes step-by-step cooking instructions",
-                            "Recipe does not include any meat, fish, dairy (cheese, milk, butter), eggs, honey, or any animal products",
-                        ],
-                    ),
-                ],
-                max_turns=5,  # Limit conversation length
-            )
+            result = await scenario.run(**scenario_config)
     else:
         # LangWatch enabled - let it handle events normally
-        result = await scenario.run(
-            name="vegetarian recipe request",
-            description="""
-                It's Saturday evening, the user is very hungry and tired,
-                but has no money to order out, so they are looking for a recipe.
-                The user wants something quick and easy to make.
-            """,
-            agents=[
-                agent,  # Agent under test (Llama-3.3-70B-Instruct)
-                scenario.UserSimulatorAgent(
-                    model=USER_SIMULATOR_MODEL,  # User simulator (gpt-4o-mini)
-                ),
-                scenario.JudgeAgent(
-                    model=JUDGE_MODEL,  # Judge agent (gpt-4o for better reasoning)
-                    criteria=[
-                        "Agent asks at most one follow-up question (a single simple question, not multiple options)",
-                        "Agent provides a vegetarian recipe",
-                        "Recipe includes a list of ingredients",
-                        "Recipe includes step-by-step cooking instructions",
-                        "Recipe does not include any meat, fish, dairy (cheese, milk, butter), eggs, honey, or any animal products",
-                    ],
-                ),
-            ],
-            max_turns=5,  # Limit conversation length
-        )
+        result = await scenario.run(**scenario_config)
     
     # Print results
     print_section("Results")
