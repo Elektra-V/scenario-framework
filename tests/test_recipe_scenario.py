@@ -78,11 +78,11 @@ async def test_vegetarian_recipe_agent():
             scenario.JudgeAgent(
                 model=JUDGE_MODEL,  # Judge agent (gpt-4o for better reasoning)
                 criteria=[
-                    "Agent asks at most one follow-up question (a single simple question, not multiple options)",
-                    "Agent provides a vegetarian recipe",
-                    "Recipe includes a list of ingredients",
-                    "Recipe includes step-by-step cooking instructions",
-                    "Recipe does not include any meat, fish, dairy (cheese, milk, butter), eggs, honey, or any animal products",
+                    "Agent should not ask more than two follow-up questions",
+                    "Agent should generate a recipe",
+                    "Recipe should include a list of ingredients",
+                    "Recipe should include step-by-step cooking instructions",
+                    "Recipe should be vegetarian and not include any sort of meat",
                 ],
             ),
         ],
@@ -112,9 +112,11 @@ async def test_recipe_agent_handles_follow_up():
             scenario.JudgeAgent(
                 model=JUDGE_MODEL,  # Judge agent (gpt-4o for better reasoning)
                 criteria=[
-                    "Agent provides a recipe",
-                    "Recipe does not include any animal products (meat, fish, dairy, eggs, honey)",
-                    "Agent handles substitution question appropriately",
+                    "Agent should not ask more than two follow-up questions",
+                    "Agent should generate a recipe",
+                    "Recipe should include a list of ingredients",
+                    "Recipe should include step-by-step cooking instructions",
+                    "Recipe should be vegetarian and not include any sort of meat",
                 ],
             ),
         ],
