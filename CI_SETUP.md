@@ -36,12 +36,37 @@ Set these in GitLab CI/CD Settings → Variables:
 - `LANGWATCH_API_KEY` - LangWatch API key
 - `LANGWATCH_ENDPOINT` - Default: `https://app.langwatch.ai`
 
-## Setting Up CI/CD Variables
+## Setting Up CI/CD Variables Securely
+
+**⚠️ IMPORTANT: Never hardcode API keys in code or YAML files!**
+
+### Step-by-Step Setup:
 
 1. Go to your GitLab project
 2. Navigate to **Settings → CI/CD → Variables**
 3. Click **Add variable** for each required variable
-4. Mark sensitive variables (API keys, passwords) as **Protected** and **Masked**
+
+### For Each Variable:
+
+**For API Keys and Passwords (Sensitive):**
+- ✅ **Protect variable**: Check this (only available on protected branches)
+- ✅ **Mask variable**: Check this (masks value in CI logs)
+- ✅ **Expand variable reference**: Check this
+
+**For Non-Sensitive Values (URLs, model names):**
+- ❌ **Protect variable**: Optional
+- ❌ **Mask variable**: Not needed
+- ✅ **Expand variable reference**: Check this
+
+### Security Best Practices:
+
+- ✅ All secrets stored as CI/CD Variables (not in code)
+- ✅ Sensitive variables marked as **Protected** and **Masked**
+- ✅ `.env` file is in `.gitignore` (already configured)
+- ✅ Never commit real API keys to the repository
+- ✅ Use different keys for different environments if needed
+
+See `SECURE_SETUP.md` for detailed step-by-step instructions with screenshots guidance.
 
 ## Pipeline Behavior
 
