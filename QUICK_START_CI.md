@@ -5,9 +5,23 @@ Set up GitLab CI to run your pytest Scenario tests without exposing API keys.
 
 ## ✅ Step 1: Add Variables in GitLab
 
-1. Open your GitLab project
-2. Go to **Settings** → **CI/CD** → **Variables** (expand section)
-3. Click **Add variable**
+### Detailed Steps:
+
+1. **Open your GitLab project** in a web browser
+2. **Click "Settings"** in the left sidebar (gear icon ⚙️)
+3. **Click "CI/CD"** in the Settings submenu
+4. **Scroll down** and find the **"Variables"** section
+5. **Click "Expand"** or the arrow to expand the Variables section
+6. **Click the blue "Add variable"** button
+
+You'll see a form with these fields:
+- **Key**: Variable name (e.g., `USE_CUSTOM_GATEWAY`)
+- **Value**: The actual value (e.g., `true` or your API key)
+- **Type**: Leave as "Variable" (default)
+- **Environment scope**: Leave as "*" (All environments)
+- **Flags**: Checkboxes for Protect, Mask, Expand
+
+See `HOW_TO_ADD_VARIABLES.md` for detailed step-by-step instructions with visual guide.
 
 ## ✅ Step 2: Add Required Variables
 
