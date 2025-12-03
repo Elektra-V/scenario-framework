@@ -1,27 +1,31 @@
-stages:
-  - test
+# Official language image. Look for the different tagged releases at:
+# https://hub.docker.com/r/library/python/tags/
+image: python:latest
 
+# Change pip's cache directory to be inside the project directory since we can
+# only cache local items.
 variables:
-  PYTHON_VERSION: "3.11"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
-# Cache uv dependencies
+# https://pip.pypa.io/en/stable/topics/caching/
 cache:
   paths:
-    - .venv/
+  - .cache/pip
 
 before_script:
-  - python --version
-  - pip install uv
-  - uv sync
+- python --version ; pip --version
+- pip install virtualenv
+- pip install uv
+- virtualenv venv
+- source venv/bin/activate
+- uv sync
 
 test:scenario:
-  stage: test
-  image: python:${PYTHON_VERSION}
-  
+  tags:
+    - asprunner
   script:
-    - echo "Running Scenario tests..."
-    - uv run pytest tests/ -v --tb=short --junit-xml=test-results.xml
-    
+    - echo "Running Scenario framework tests..."
+    - uv run pytest tests/ --junit-xml=test-results.xml
   artifacts:
     when: always
     reports:
@@ -29,22 +33,15 @@ test:scenario:
     paths:
       - test-results.xml
     expire_in: 1 week
-  
-  variables:
-    USE_CUSTOM_GATEWAY: "${USE_CUSTOM_GATEWAY}"
-    CUSTOM_GATEWAY_API_KEY: "${CUSTOM_GATEWAY_API_KEY}"
-    CUSTOM_GATEWAY_BASE_URL: "${CUSTOM_GATEWAY_BASE_URL}"
-    GENAI_USERNAME: "${GENAI_USERNAME}"
-    GENAI_PASSWORD: "${GENAI_PASSWORD}"
-    CUSTOM_MODEL: "${CUSTOM_MODEL}"
-    OPENAI_API_KEY: "${OPENAI_API_KEY}"
-    USER_SIMULATOR_MODEL: "${USER_SIMULATOR_MODEL}"
-    JUDGE_MODEL: "${JUDGE_MODEL}"
-    LANGWATCH_API_KEY: "${LANGWATCH_API_KEY}"
-    LANGWATCH_ENDPOINT: "${LANGWATCH_ENDPOINT}"
-  
-  only:
-    - main
-    - develop
-    - merge_requests
+
+run:
+  tags:
+    - asprunner
+  script:
+    # Try to install the project in editable mode if it's a package,
+    # otherwise fall back to requirements.txt if it exists.
+    - pip install -e . || if [ -f "requirements.txt" ]; then pip install -r requirements.txt; fi
+    # Replace this with whatever you want to run in CI for now:
+    # for example your scenario runner command later.
+    - echo "CI pipeline is running"
 
