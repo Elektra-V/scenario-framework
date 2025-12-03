@@ -1,0 +1,50 @@
+stages:
+  - test
+
+variables:
+  PYTHON_VERSION: "3.11"
+
+# Cache uv dependencies
+cache:
+  paths:
+    - .venv/
+
+before_script:
+  - python --version
+  - pip install uv
+  - uv sync
+
+test:scenario:
+  stage: test
+  image: python:${PYTHON_VERSION}
+  
+  script:
+    - echo "Running Scenario tests..."
+    - uv run pytest tests/ -v --tb=short --junit-xml=test-results.xml
+    
+  artifacts:
+    when: always
+    reports:
+      junit: test-results.xml
+    paths:
+      - test-results.xml
+    expire_in: 1 week
+  
+  variables:
+    USE_CUSTOM_GATEWAY: "${USE_CUSTOM_GATEWAY}"
+    CUSTOM_GATEWAY_API_KEY: "${CUSTOM_GATEWAY_API_KEY}"
+    CUSTOM_GATEWAY_BASE_URL: "${CUSTOM_GATEWAY_BASE_URL}"
+    GENAI_USERNAME: "${GENAI_USERNAME}"
+    GENAI_PASSWORD: "${GENAI_PASSWORD}"
+    CUSTOM_MODEL: "${CUSTOM_MODEL}"
+    OPENAI_API_KEY: "${OPENAI_API_KEY}"
+    USER_SIMULATOR_MODEL: "${USER_SIMULATOR_MODEL}"
+    JUDGE_MODEL: "${JUDGE_MODEL}"
+    LANGWATCH_API_KEY: "${LANGWATCH_API_KEY}"
+    LANGWATCH_ENDPOINT: "${LANGWATCH_ENDPOINT}"
+  
+  only:
+    - main
+    - develop
+    - merge_requests
+
