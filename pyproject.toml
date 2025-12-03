@@ -11,3 +11,22 @@ dependencies = [
     "pytest-timeout>=2.4.0",
     "python-dotenv>=1.2.1",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "scenario: marks tests as scenario tests",
+]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+]
+timeout = 300
